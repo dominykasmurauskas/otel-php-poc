@@ -1,0 +1,47 @@
+version: '3.7'
+services:
+  influxdb:
+    image: influxdb
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: MyOrg
+      DOCKER_INFLUXDB_INIT_BUCKET: data-pipeline
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: test-token
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.84.0
+    container_name: otel-collector
+    ports:
+      - "4317:4317" # gRPC
+      - "55670:55679" # zpages extension
+    volumes:
+      - './docker/otel/config.yml:/etc/otelcol-config.yml'
+    command: [ "--config=/etc/otelcol-config.yml"]
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - './docker/volumes/grafana:/var/lib/grafana'
+
+  php:
+    container_name: monitoring_php_app
+    build: ./docker/php
+    restart: on-failure
+    volumes:
+      - "./php/:/var/www:cached"
+    entrypoint: "tail -f /dev/null"
+
+networks:
+  default:
+    name: monitoring-network

@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+
+exporters:
+  influxdb:
+    endpoint: "http://influxdb:8086"
+    org: MyOrg
+    token: test-token
+    bucket: data-pipeline
+  logging:
+    loglevel: debug
+
+processors:
+  routing:
+    default_exporters:
+      - influxdb
+
+extensions:
+  zpages:
+    endpoint: :55679
+
+service:
+  extensions: [zpages]
+  pipelines:
+    metrics:
+      receivers: [ otlp ]
+      processors: [ routing ]
+      exporters: [ logging, influxdb ]
+    logs:
+      receivers: [ otlp ]
+      processors: [ routing ]
+      exporters: [ logging, influxdb ]
